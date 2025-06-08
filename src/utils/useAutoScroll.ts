@@ -7,14 +7,14 @@ export function useAutoScroll(
     events: TimelineEvent[],
     now: dayjs.Dayjs,
     autoScroll: boolean,
-    setAutoScroll: (state: boolean) => void
+    setAutoScroll: (value: boolean) => void
 ) {
     useEffect(() => {
         if (autoScroll && ref.current && events.length > 0) {
             const offset = now.diff(events[0].time, 'second') * 2 - 200;
             ref.current.scrollTo({top: offset, behavior: 'smooth'});
         }
-    }, [now, events, autoScroll, ref]);
+    }, [now, events, autoScroll]);
 
     useEffect(() => {
         const el = ref.current;

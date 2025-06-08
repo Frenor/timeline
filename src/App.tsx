@@ -1,16 +1,12 @@
 import React, {useEffect, useRef, useState} from 'react';
-import {Dayjs} from 'dayjs';
+import dayjs, {Dayjs} from 'dayjs';
 import {useInterval} from 'react-use';
 import {parseXlsxFile, TimelineEvent} from './utils/fileUtils';
 import {useAutoScroll} from './utils/useAutoScroll';
-import './index.css';
-
 
 function StudioClock(): JSX.Element {
     const [now, setNow] = useState<Dayjs>(dayjs());
-
     useInterval(() => setNow(dayjs()), 1000);
-
     const seconds = now.second();
 
     return (
@@ -47,11 +43,19 @@ function TimelineItem({event, top, isNow, onClick}: TimelineItemProps): JSX.Elem
     return (
         <div className="absolute left-6" style={{top}}>
             <div
-                className={`p-3 border rounded shadow text-sm transition-colors duration-300 cursor-pointer space-y-1 ${event.completed ? 'bg-green-100 border-green-500 line-through' : isNow ? 'bg-red-100 border-red-500' : 'bg-white'}`}
+                className={`p-3 border rounded shadow text-sm transition-colors duration-300 cursor-pointer space-y-1 ${
+                    event.completed
+                        ? 'bg-green-100 border-green-500 line-through'
+                        : isNow
+                            ? 'bg-red-100 border-red-500'
+                            : 'bg-white'
+                }`}
                 onClick={onClick}
             >
                 <div className="font-semibold text-base">{event.title}</div>
-                <div className="text-xs text-gray-500">{event.time.format('HH:mm:ss')} &bull; {event.location}</div>
+                <div className="text-xs text-gray-500">
+                    {event.time.format('HH:mm:ss')} • {event.location}
+                </div>
                 <div className="text-sm text-gray-800">{event.description}</div>
                 {event.special && (
                     <div className="text-sm text-red-700 font-semibold">⚠️ {event.special}</div>
@@ -72,7 +76,6 @@ function Timeline({events, onToggleComplete}: TimelineProps): JSX.Element {
     const [autoScroll, setAutoScroll] = useState(true);
 
     useInterval(() => setNow(dayjs()), 1000);
-
     useAutoScroll(containerRef, events, now, autoScroll, setAutoScroll);
 
     return (
@@ -115,7 +118,6 @@ function App(): JSX.Element {
             completed: false
         }));
     });
-
     const [errors, setErrors] = useState<string[]>([]);
 
     useEffect(() => {
@@ -134,7 +136,9 @@ function App(): JSX.Element {
     };
 
     const toggleComplete = (index: number) => {
-        setEvents(prev => prev.map((e, i) => i === index ? {...e, completed: !e.completed} : e));
+        setEvents(prev =>
+            prev.map((e, i) => (i === index ? {...e, completed: !e.completed} : e))
+        );
     };
 
     return (
