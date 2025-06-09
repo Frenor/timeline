@@ -3,7 +3,8 @@ import dayjs from 'dayjs';
 
 export interface TimelineEvent {
     title: string;
-    time: dayjs.Dayjs;
+    from: dayjs.Dayjs;
+    to: dayjs.Dayjs;
     location: string;
     description: string;
     special?: string;
@@ -12,7 +13,8 @@ export interface TimelineEvent {
 
 export interface XlsxRow {
     Title?: string;
-    Time?: string;
+    From?: string;
+    To?: string;
     Location?: string;
     Description?: string;
     Special?: string;
@@ -20,7 +22,8 @@ export interface XlsxRow {
 
 function isValidRow(row: XlsxRow): row is Required<XlsxRow> {
     return (
-        typeof row.Time === 'string' && row.Time.trim() !== '' &&
+        typeof row.From === 'string' && row.From.trim() !== '' &&
+        typeof row.To === 'string' && row.To.trim() !== '' &&
         typeof row.Location === 'string' &&
         typeof row.Description === 'string'
     );
@@ -43,14 +46,20 @@ export async function parseXlsxFile(
             errors.push(`Row ${index + 2} is missing required fields or has invalid time.`);
             return;
         }
-        const parsedTime = dayjs(row.Time, 'HH:mm:ss', true);
-        if (!parsedTime.isValid()) {
-            errors.push(`Row ${index + 2}: Invalid time format "${row.Time}".`);
+        const parsedFrom = dayjs(row.From, 'HH:mm:ss', true);
+        if (!parsedFrom.isValid()) {
+            errors.push(`Row ${index + 2}: From - Invalid time format "${row.From}".`);
+            return;
+        }
+        const parsedTo = dayjs(row.To, 'HH:mm:ss', true);
+        if (!parsedTo.isValid()) {
+            errors.push(`Row ${index + 2}: To - Invalid time format "${row.To}".`);
             return;
         }
         items.push({
             title: row.Title?.trim() || 'Untitled',
-            time: parsedTime,
+            from: parsedFrom,
+            to: parsedTo,
             location: row.Location.trim(),
             description: row.Description.trim(),
             special: row.Special?.trim(),

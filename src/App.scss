@@ -1,0 +1,166 @@
+// App.scss
+@use "sass:color";
+
+$app-bg: #f3f4f6;
+$app-text: #111827;
+$app-border: #e5e7eb;
+$header-bg: #ffffff;
+$error-color: #b91c1c;
+$dark-bg: #1f2937;
+$dark-text: #f9fafb;
+
+.app-container {
+  background: $app-bg;
+  color: $app-text;
+  min-height: 100vh;
+  padding: 1rem;
+  &.dark {
+    background: $dark-bg;
+    color: $dark-text;
+  }
+}
+
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: $header-bg;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  .theme-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    input[type="checkbox"] {
+      width: 1rem;
+      height: 1rem;
+    }
+    span {
+      font-size: 0.875rem;
+    }
+  }
+  .file-input {
+    cursor: pointer;
+  }
+  .error-list {
+    margin-left: auto;
+    color: $error-color;
+    .error-item {
+      font-size: 0.875rem;
+    }
+  }
+}
+
+.studio-clock {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  width: 128px;
+  height: 128px;
+  background: #fff;
+  border: 4px solid $app-border;
+  border-radius: 50%;
+  padding: 0.75rem;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+
+  .clock-time {
+    width: 100%;
+    text-align: right;
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: #b91c1c;
+  }
+  .dot {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #d1d5db;
+  }
+  .dot.active {
+    background: #b91c1c;
+  }
+}
+
+.timeline {
+  overflow-y: auto;
+  height: calc(100vh - 160px);
+  background: #fff;
+  border: 1px solid $app-border;
+  &.dark {
+    background: color.adjust($dark-bg, $lightness: -5%);
+    border-color: color.adjust($app-border, $lightness: -20%);
+  }
+}
+
+.timeline-item {
+  display: grid;
+  grid-template-columns: 200px 100px 150px 1fr auto;
+  gap: 1rem;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid $app-border;
+  cursor: pointer;
+  font-size: 0.875rem;
+
+  &.completed {
+    background: #ecfdf5;
+    border-color: #10b981;
+  }
+  &.current {
+    background: #fef2f2;
+    border-color: #ef4444;
+  }
+  &.past {
+    opacity: 0.5;
+  }
+
+  &:hover,
+  &:focus {
+    background: color.adjust($app-border, $lightness: 40%);
+    outline: 2px solid #3b82f6;
+  }
+
+  .col {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .title {
+    font-weight: 600;
+  }
+  .time,
+  .location {
+    color: #4b5563;
+  }
+  .description {
+    color: #374151;
+  }
+  .special {
+    color: #b91c1c;
+    font-weight: 500;
+  }
+}
+
+.app-container.dark {
+  .app-header {
+    background: $dark-bg;
+  }
+  .studio-clock {
+    background: color.adjust($app-bg, $lightness: -10%);
+    border-color: color.adjust($app-border, $lightness: -20%);
+  }
+  .studio-clock .clock-time {
+    color: color.adjust($dark-text, $lightness: 20%);
+  }
+  .dot.active {
+    background: #f87171;
+  }
+  .timeline-item:hover,
+  .timeline-item:focus {
+    background: color.adjust($dark-bg, $lightness: 10%);
+  }
+}
