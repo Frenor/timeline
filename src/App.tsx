@@ -8,31 +8,16 @@ import './App.scss';
 
 dayjs.extend(isBetween);
 
-const generateDemoEvents = (count = 50): TimelineEvent[] => {
-    const base = dayjs().startOf('hour');
-    return Array.from({ length: count }).map((_, i) => {
-        const from = base.add(Math.floor(Math.random() * 120), 'minute');
-        const to = from.add(Math.floor(Math.random() * 30) + 5, 'minute');
-        return {
-            title: `Event ${i + 1}`,
-            from,
-            to,
-            location: `Loc ${Math.ceil(Math.random() * 10)}`,
-            description: `Desc ${i + 1}`,
-            special: Math.random() < 0.2 ? '⚠️ attention' : '',
-            completed: false
-        };
-    });
-};
-
+// StudioClock component
 function StudioClock() {
     const [now, setNow] = useState<Dayjs>(dayjs());
     useInterval(() => setNow(dayjs()), 1000);
     const seconds = now.second();
+
     return (
         <div className="studio-clock">
             <div className="clock-time">{now.format('HH:mm:ss')}</div>
-            {Array.from({ length: 60 }).map((_, i) => {
+            {[...Array(60)].map((_, i) => {
                 const angle = ((i * 6) - 90) * (Math.PI / 180);
                 const radius = 60;
                 const x = 64 + radius * Math.cos(angle);
@@ -43,20 +28,22 @@ function StudioClock() {
     );
 }
 
-type TimelineItemRef = HTMLDivElement | null;
 interface TimelineItemProps {
     event: TimelineEvent;
     isNow: boolean;
     isPast: boolean;
-    onClick(): void;
+    onClick: () => void;
 }
+
+type TimelineItemRef = HTMLDivElement | null;
 const TimelineItem = React.forwardRef<TimelineItemRef, TimelineItemProps>(({ event, isNow, isPast, onClick }, ref) => {
     const classes = ['timeline-item'];
     if (event.completed) classes.push('completed');
     else if (isNow) classes.push('current');
     else if (isPast) classes.push('past');
+
     return (
-        <div ref={ref} className={classes.join(' ')} onClick={onClick} tabIndex={-1}>
+        <div ref={ref as React.Ref<HTMLDivElement>} className={classes.join(' ')} onClick={onClick} tabIndex={-1}>
             <div className="col title">{event.title}</div>
             <div className="col time">{event.from.format('HH:mm')} - {event.to.format('HH:mm')}</div>
             <div className="col location">{event.location}</div>
@@ -68,7 +55,7 @@ const TimelineItem = React.forwardRef<TimelineItemRef, TimelineItemProps>(({ eve
 
 interface TimelineProps {
     events: TimelineEvent[];
-    onToggleComplete(index: number): void;
+    onToggleComplete: (index: number) => void;
     autoScrollEnabled: boolean;
 }
 
@@ -80,8 +67,10 @@ function Timeline({ events, onToggleComplete, autoScrollEnabled }: TimelineProps
     const itemRefs = useRef<TimelineItemRef[]>([]);
 
     useInterval(() => setNow(dayjs()), 1000);
-    useAutoScroll(containerRef, events, now, autoScrollEnabled && internalAutoScroll, setInternalAutoScroll);
+    const effective = autoScrollEnabled && internalAutoScroll;
+    useAutoScroll(containerRef, events, now, effective, setInternalAutoScroll);
 
+    // Sorting by status, time, location
     const getStatus = (e: TimelineEvent) => {
         if (now.isAfter(e.to, 'second')) return 0;
         if (now.isBetween(e.from, e.to, 'second', '[]')) return 1;
@@ -95,6 +84,7 @@ function Timeline({ events, onToggleComplete, autoScrollEnabled }: TimelineProps
         return a.location.localeCompare(b.location);
     });
 
+    // Group into hour buckets
     const buckets: Record<string, TimelineEvent[]> = {};
     sorted.forEach(e => {
         const hour = e.from.format('HH:00');
@@ -102,6 +92,7 @@ function Timeline({ events, onToggleComplete, autoScrollEnabled }: TimelineProps
         buckets[hour].push(e);
     });
 
+    // Keyboard navigation
     useEffect(() => {
         const handleKey = (e: KeyboardEvent) => {
             if (e.key === 'ArrowDown') {
@@ -115,8 +106,9 @@ function Timeline({ events, onToggleComplete, autoScrollEnabled }: TimelineProps
         const container = containerRef.current;
         container?.addEventListener('keydown', handleKey);
         return () => container?.removeEventListener('keydown', handleKey);
-    }, [sorted.length]);
+    }, [sorted.length, selectedIdx]);
 
+    // Focus effect
     useEffect(() => {
         itemRefs.current[selectedIdx]?.focus();
     }, [selectedIdx]);
@@ -153,17 +145,20 @@ function Timeline({ events, onToggleComplete, autoScrollEnabled }: TimelineProps
 
 function App() {
     const [events, setEvents] = useState<TimelineEvent[]>(() => {
-        const saved = localStorage.getItem('timelineEvents');
-        if (saved) {
-            const parsed = JSON.parse(saved);
-            return parsed.map((e: any) => ({ ...e, from: dayjs(e.from), to: dayjs(e.to) }));
-        }
-        const demo = generateDemoEvents();
-        localStorage.setItem(
-            'timelineEvents',
-            JSON.stringify(demo.map(e => ({ ...e, from: e.from.toISOString(), to: e.to.toISOString() })))
-        );
-        return demo;
+        const base = dayjs().startOf('hour');
+        return Array.from({ length: 50 }).map((_, i) => {
+            const start = base.add(Math.floor(Math.random() * 120), 'minute');
+            const end = start.add(Math.floor(Math.random() * 30) + 5, 'minute');
+            return {
+                title: `Event ${i + 1}`,
+                from: start,
+                to: end,
+                location: `Loc ${Math.ceil(Math.random() * 10)}`,
+                description: `Desc ${i + 1}`,
+                special: Math.random() < 0.2 ? '⚠️ attention' : '',
+                completed: false
+            };
+        });
     });
 
     useEffect(() => {
@@ -184,8 +179,6 @@ function App() {
     const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) {
-            const demo = generateDemoEvents();
-            setEvents(demo);
             setErrors([]);
             return;
         }
