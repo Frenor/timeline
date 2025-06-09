@@ -4,29 +4,10 @@ import isBetween from 'dayjs/plugin/isBetween';
 import { useInterval } from 'react-use';
 import { parseXlsxFile, TimelineEvent } from './utils/fileUtils';
 import { useAutoScroll } from './utils/useAutoScroll';
+import StudioClock from './components/StudioClock';
 import './App.scss';
 
 dayjs.extend(isBetween);
-
-// StudioClock component
-function StudioClock() {
-    const [now, setNow] = useState<Dayjs>(dayjs());
-    useInterval(() => setNow(dayjs()), 1000);
-    const seconds = now.second();
-
-    return (
-        <div className="studio-clock">
-            <div className="clock-time">{now.format('HH:mm:ss')}</div>
-            {[...Array(60)].map((_, i) => {
-                const angle = ((i * 6) - 90) * (Math.PI / 180);
-                const radius = 60;
-                const x = 64 + radius * Math.cos(angle);
-                const y = 64 + radius * Math.sin(angle);
-                return <div key={i} className={`dot ${i <= seconds ? 'active' : ''}`} style={{ left: x, top: y }} />;
-            })}
-        </div>
-    );
-}
 
 interface TimelineItemProps {
     event: TimelineEvent;
@@ -209,7 +190,7 @@ function App() {
                     </div>
                 )}
             </header>
-            <StudioClock />
+            <StudioClock showSecondsHand={true} size={128} />
             <Timeline events={events} onToggleComplete={toggleComplete} autoScrollEnabled={true} />
         </div>
     );
