@@ -1,33 +1,70 @@
-import {RefObject, useEffect} from 'react';
+import { RefObject, useEffect } from 'react';
 import dayjs from 'dayjs';
-import {TimelineEvent} from './fileUtils';
+import { TimelineEvent } from './fileUtils';
 
 export function useAutoScroll(
-    ref: RefObject<HTMLDivElement>,
-    events: TimelineEvent[],
-    now: dayjs.Dayjs,
-    autoScroll: boolean,
-    setAutoScroll: (value: boolean) => void
+  ref: RefObject<HTMLDivElement>,
+  events: TimelineEvent[],
+  now: dayjs.Dayjs,
+  autoScroll: boolean,
+  setAutoScroll: (value: boolean) => void
 ) {
-    useEffect(() => {
-        if (autoScroll && ref.current && events.length > 0) {
-            const offset = now.diff(events[0].time, 'second') * 2 - 200;
-            ref.current.scrollTo({top: offset, behavior: 'smooth'});
-        }
-    }, [now, events, autoScroll]);
+  // Helper to scroll to a specific element (with offset)
+  const scrollToElement = (element: Element, container: HTMLDivElement) => {
+    const HEADER_OFFSET = 150;
+    const elementRect = element.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+    const relativeTop = elementRect.top - containerRect.top + container.scrollTop - HEADER_OFFSET;
+    container.scrollTo({ top: relativeTop, behavior: 'smooth' });
+  };
 
-    useEffect(() => {
-        const el = ref.current;
-        if (!el) return;
+  useEffect(() => {
+    if (!autoScroll || !ref.current || events.length === 0) return;
 
-        let timeout: NodeJS.Timeout;
-        const onScroll = () => {
-            setAutoScroll(false);
-            clearTimeout(timeout);
-            timeout = setTimeout(() => setAutoScroll(true), 5000);
-        };
+    const container = ref.current;
 
-        el.addEventListener('scroll', onScroll);
-        return () => el.removeEventListener('scroll', onScroll);
-    }, [ref, setAutoScroll]);
+    // Find the currently active event
+    const activeEvent = events.find(
+      e => !e.completed && now.isBetween(e.from, e.to, 'second', '[]'),
+    );
+
+    // Query for the scrolling target
+    let target: Element | null = null;
+
+    if (activeEvent) {
+      // Scroll to the first .timeline-item.current:not(.completed)
+      target = container.querySelector('.timeline-item.current:not(.completed)');
+    } else {
+      // Otherwise, look for the first upcoming non-completed event
+      const upcomingEvent = events.find(
+        e => !e.completed && now.isBefore(e.from, 'second'),
+      );
+      if (upcomingEvent) {
+        // Find matching .timeline-item containing the event title
+        target = Array.from(container.querySelectorAll('.timeline-item'))
+          .find(el => el.textContent?.includes(upcomingEvent.title)) ?? null;
+      }
+    }
+
+    // If a target was found, scroll to it
+    if (target) {
+      scrollToElement(target, container);
+    }
+  }, [now, events, autoScroll, ref]);
+
+  // Reset auto scroll after user scrolls
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    let timeout: NodeJS.Timeout;
+    const onScroll = () => {
+      setAutoScroll(false);
+      clearTimeout(timeout);
+      timeout = setTimeout(() => setAutoScroll(true), 5000);
+    };
+
+    el.addEventListener('scroll', onScroll);
+    return () => el.removeEventListener('scroll', onScroll);
+  }, [ref, setAutoScroll]);
 }

@@ -24,7 +24,7 @@ const TimelineItem = React.forwardRef<TimelineItemRef, TimelineItemProps>(({ eve
     else if (isPast) classes.push('past');
 
     return (
-        <div ref={ref as React.Ref<HTMLDivElement>} className={classes.join(' ')} onClick={onClick} tabIndex={-1}>
+        <div ref={ref as React.Ref<HTMLDivElement>} className={classes.join(' ')} onClick={onClick}>
             <div className="col title">{event.title}</div>
             <div className="col time">{event.from.format('HH:mm')} - {event.to.format('HH:mm')}</div>
             <div className="col location">{event.location}</div>
@@ -44,8 +44,8 @@ function Timeline({ events, onToggleComplete, autoScrollEnabled }: TimelineProps
     const containerRef = useRef<HTMLDivElement>(null);
     const [now, setNow] = useState<Dayjs>(dayjs());
     const [internalAutoScroll, setInternalAutoScroll] = useState(true);
-    const [selectedIdx, setSelectedIdx] = useState(0);
     const itemRefs = useRef<TimelineItemRef[]>([]);
+    const activeEventRef = useRef<TimelineItemRef>(null);
 
     useInterval(() => setNow(dayjs()), 1000);
     const effective = autoScrollEnabled && internalAutoScroll;
@@ -73,30 +73,19 @@ function Timeline({ events, onToggleComplete, autoScrollEnabled }: TimelineProps
         buckets[hour].push(e);
     });
 
-    // Keyboard navigation
-    useEffect(() => {
-        const handleKey = (e: KeyboardEvent) => {
-            if (e.key === 'ArrowDown') {
-                e.preventDefault();
-                setSelectedIdx(i => (i + 1) % sorted.length);
-            } else if (e.key === 'ArrowUp') {
-                e.preventDefault();
-                setSelectedIdx(i => (i - 1 + sorted.length) % sorted.length);
-            }
-        };
-        const container = containerRef.current;
-        container?.addEventListener('keydown', handleKey);
-        return () => container?.removeEventListener('keydown', handleKey);
-    }, [sorted.length, selectedIdx]);
 
-    // Focus effect
-    useEffect(() => {
-        itemRefs.current[selectedIdx]?.focus();
-    }, [selectedIdx]);
 
     let idxCounter = 0;
     return (
-        <div className="timeline" ref={containerRef} tabIndex={0}>
+        <div className="timeline" ref={containerRef}>
+            {/* Column headers */}
+            <div className="timeline-header">
+                <div className="col title">Title</div>
+                <div className="col time">Time</div>
+                <div className="col location">Location</div>
+                <div className="col description">Description</div>
+                <div className="col special">Special</div>
+            </div>
             {Object.entries(buckets).map(([hour, bucket]) => (
                 <div key={hour}>
                     <div className="hour-header">{hour}</div>
@@ -113,7 +102,6 @@ function Timeline({ events, onToggleComplete, autoScrollEnabled }: TimelineProps
                                 isPast={isPast}
                                 onClick={() => {
                                     onToggleComplete(events.indexOf(e));
-                                    setSelectedIdx(idx);
                                 }}
                             />
                         );
@@ -151,6 +139,7 @@ function App() {
 
     const [errors, setErrors] = useState<string[]>([]);
     const [darkMode, setDarkMode] = useState(() => localStorage.getItem('theme') === 'dark');
+    const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
 
     useEffect(() => {
         document.documentElement.classList.toggle('dark', darkMode);
@@ -179,6 +168,10 @@ function App() {
                     <input type="checkbox" checked={darkMode} onChange={() => setDarkMode(prev => !prev)} />
                     <span>Dark Mode</span>
                 </label>
+                <label className="auto-scroll-toggle">
+                    <input type="checkbox" checked={autoScrollEnabled} onChange={() => setAutoScrollEnabled(prev => !prev)} />
+                    <span>Auto Scroll</span>
+                </label>
                 <input type="file" accept=".xlsx" onChange={handleFile} className="file-input" />
                 {errors.length > 0 && (
                     <div className="error-list">
@@ -191,7 +184,7 @@ function App() {
                 )}
             </header>
             <StudioClock showSecondsHand={true} size={128} />
-            <Timeline events={events} onToggleComplete={toggleComplete} autoScrollEnabled={true} />
+            <Timeline events={events} onToggleComplete={toggleComplete} autoScrollEnabled={autoScrollEnabled} />
         </div>
     );
 }
