@@ -274,8 +274,6 @@ $timeline-item-focus-outline: 2px;
   font-size: 1.1rem;
   letter-spacing: 0.05em;
   border-bottom: 1px solid $app-border;
-  margin-top: 0.75rem;
-  margin-bottom: 0.5rem;
 
   @media (prefers-color-scheme: light) {
     background-color: rgba(245, 247, 250, 0.95); // Subtle light gray background for light mode
