@@ -1,6 +1,6 @@
 import { RefObject, useEffect } from 'react';
 import dayjs from 'dayjs';
-import { TimelineEvent } from './fileUtils';
+import { TimelineEvent } from '../hooks/useXlsx';
 
 export function useAutoScroll(
   ref: RefObject<HTMLDivElement>,

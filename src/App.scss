@@ -158,7 +158,6 @@ $timeline-item-focus-outline: 2px;
     height: $dot-size-cardinal;
     background: #6b7280;
   }
-  // Active state in light mode
   .dot.active,
   .dot.cardinal.active {
     background: $error-color;
@@ -168,17 +167,6 @@ $timeline-item-focus-outline: 2px;
 .dark .studio-clock {
   @include dark-mode {
     background: $dark-bg-secondary;
-    border-color: $royal-blue-dark;
-    box-shadow: $shadow-glow, $shadow-inset;
-
-    .clock-time { color: $royal-blue-light; }
-    .dot { background: $dark-bg-tertiary; }
-    .dot.cardinal { background: $royal-blue-dark; }
-    .dot.active,
-    .dot.cardinal.active {
-      background: $royal-blue-light;
-      box-shadow: $shadow-glow;
-    }
   }
 }
 

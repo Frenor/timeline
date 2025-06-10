@@ -1,13 +1,18 @@
 import React, { useEffect, useRef, useState } from 'react';
 import dayjs, { Dayjs } from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
+import CustomParseFormat from 'dayjs/plugin/customParseFormat'
 import { useInterval } from 'react-use';
-import { parseXlsxFile, TimelineEvent } from './utils/fileUtils';
+import { useXlsx } from './hooks/useXlsx';
+import { TimelineEvent } from './hooks/useXlsx';
 import { useAutoScroll } from './utils/useAutoScroll';
 import StudioClock from './components/StudioClock';
 import './App.scss';
 
 dayjs.extend(isBetween);
+dayjs.extend(CustomParseFormat);
+
+type TimelineItemRef = HTMLDivElement | null;
 
 interface TimelineItemProps {
     event: TimelineEvent;
@@ -16,23 +21,30 @@ interface TimelineItemProps {
     onClick: () => void;
 }
 
-type TimelineItemRef = HTMLDivElement | null;
-const TimelineItem = React.forwardRef<TimelineItemRef, TimelineItemProps>(({ event, isNow, isPast, onClick }, ref) => {
-    const classes = ['timeline-item'];
-    if (event.completed) classes.push('completed');
-    else if (isNow) classes.push('current');
-    else if (isPast) classes.push('past');
+const TimelineItem = React.forwardRef<TimelineItemRef, TimelineItemProps>(
+    ({ event, isNow, isPast, onClick }, ref) => {
+        const classes = ['timeline-item'];
+        if (event.completed) classes.push('completed');
+        else if (isNow) classes.push('current');
+        else if (isPast) classes.push('past');
 
-    return (
-        <div ref={ref as React.Ref<HTMLDivElement>} className={classes.join(' ')} onClick={onClick}>
-            <div className="col title">{event.title}</div>
-            <div className="col time">{event.from.format('HH:mm')} - {event.to.format('HH:mm')}</div>
-            <div className="col location">{event.location}</div>
-            <div className="col description">{event.description}</div>
-            <div className="col special">{event.special}</div>
-        </div>
-    );
-});
+        return (
+            <div
+                ref={ref as React.Ref<HTMLDivElement>}
+                className={classes.join(' ')}
+                onClick={onClick}
+            >
+                <div className="col title">{event.title}</div>
+                <div className="col time">
+                    {event.from.format('HH:mm')} - {event.to.format('HH:mm')}
+                </div>
+                <div className="col location">{event.location}</div>
+                <div className="col description">{event.description}</div>
+                <div className="col special">{event.special}</div>
+            </div>
+        );
+    }
+);
 
 interface TimelineProps {
     events: TimelineEvent[];
@@ -45,18 +57,17 @@ function Timeline({ events, onToggleComplete, autoScrollEnabled }: TimelineProps
     const [now, setNow] = useState<Dayjs>(dayjs());
     const [internalAutoScroll, setInternalAutoScroll] = useState(true);
     const itemRefs = useRef<TimelineItemRef[]>([]);
-    const activeEventRef = useRef<TimelineItemRef>(null);
 
     useInterval(() => setNow(dayjs()), 1000);
     const effective = autoScrollEnabled && internalAutoScroll;
     useAutoScroll(containerRef, events, now, effective, setInternalAutoScroll);
 
-    // Sorting by status, time, location
     const getStatus = (e: TimelineEvent) => {
         if (now.isAfter(e.to, 'second')) return 0;
         if (now.isBetween(e.from, e.to, 'second', '[]')) return 1;
         return 2;
     };
+
     const sorted = [...events].sort((a, b) => {
         const sa = getStatus(a), sb = getStatus(b);
         if (sa !== sb) return sa - sb;
@@ -65,7 +76,6 @@ function Timeline({ events, onToggleComplete, autoScrollEnabled }: TimelineProps
         return a.location.localeCompare(b.location);
     });
 
-    // Group into hour buckets
     const buckets: Record<string, TimelineEvent[]> = {};
     sorted.forEach(e => {
         const hour = e.from.format('HH:00');
@@ -73,12 +83,9 @@ function Timeline({ events, onToggleComplete, autoScrollEnabled }: TimelineProps
         buckets[hour].push(e);
     });
 
-
-
     let idxCounter = 0;
     return (
         <div className="timeline" ref={containerRef}>
-            {/* Column headers */}
             <div className="timeline-header">
                 <div className="col title">Title</div>
                 <div className="col time">Time</div>
@@ -100,9 +107,7 @@ function Timeline({ events, onToggleComplete, autoScrollEnabled }: TimelineProps
                                 event={e}
                                 isNow={isNow}
                                 isPast={isPast}
-                                onClick={() => {
-                                    onToggleComplete(events.indexOf(e));
-                                }}
+                                onClick={() => onToggleComplete(events.indexOf(e))}
                             />
                         );
                     })}
@@ -113,66 +118,70 @@ function Timeline({ events, onToggleComplete, autoScrollEnabled }: TimelineProps
 }
 
 function App() {
-    const [events, setEvents] = useState<TimelineEvent[]>(() => {
-        const base = dayjs().startOf('hour');
-        return Array.from({ length: 50 }).map((_, i) => {
-            const start = base.add(Math.floor(Math.random() * 120), 'minute');
-            const end = start.add(Math.floor(Math.random() * 30) + 5, 'minute');
-            return {
-                title: `Event ${i + 1}`,
-                from: start,
-                to: end,
-                location: `Loc ${Math.ceil(Math.random() * 10)}`,
-                description: `Desc ${i + 1}`,
-                special: Math.random() < 0.2 ? '⚠️ attention' : '',
-                completed: false
-            };
-        });
-    });
+    const [file, setFile] = useState<File | null>(null);
+    const { sheets, items: parsedEvents, errors, setSelectedSheet } = useXlsx(file, true);
 
-    useEffect(() => {
-        localStorage.setItem(
-            'timelineEvents',
-            JSON.stringify(events.map(e => ({ ...e, from: e.from.toISOString(), to: e.to.toISOString() })))
-        );
-    }, [events]);
-
-    const [errors, setErrors] = useState<string[]>([]);
+    const [events, setEvents] = useState<TimelineEvent[]>([]);
     const [darkMode, setDarkMode] = useState(() => localStorage.getItem('theme') === 'dark');
     const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
+
+    // When parsedEvents change, update events
+    useEffect(() => {
+        setEvents(parsedEvents);
+    }, [parsedEvents]);
+
+    // Persist events
+    useEffect(() => {
+        if (events.length === 0) return;
+        localStorage.setItem(
+            'timelineEvents',
+            JSON.stringify(
+                events.map(e => ({ ...e, from: e.from.toISOString(), to: e.to.toISOString() }))
+            )
+        );
+    }, [events]);
 
     useEffect(() => {
         document.documentElement.classList.toggle('dark', darkMode);
         localStorage.setItem('theme', darkMode ? 'dark' : 'light');
     }, [darkMode]);
 
-    const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) {
-            setErrors([]);
-            return;
-        }
-        const { items, errors } = await parseXlsxFile(file, true);
-        setEvents(items);
-        setErrors(errors);
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const f = e.target.files?.[0] || null;
+        setFile(f);
     };
 
     const toggleComplete = (idx: number) => {
-        setEvents(prev => prev.map((e, i) => (i === idx ? { ...e, completed: !e.completed } : e)));
+        setEvents(prev =>
+            prev.map((e, i) => (i === idx ? { ...e, completed: !e.completed } : e))
+        );
     };
 
     return (
         <div className={`app-container ${darkMode ? 'dark' : ''}`}>
             <header className="app-header">
                 <label className="theme-toggle">
-                    <input type="checkbox" checked={darkMode} onChange={() => setDarkMode(prev => !prev)} />
+                    <input
+                        type="checkbox"
+                        checked={darkMode}
+                        onChange={() => setDarkMode(prev => !prev)}
+                    />
                     <span>Dark Mode</span>
                 </label>
                 <label className="auto-scroll-toggle">
-                    <input type="checkbox" checked={autoScrollEnabled} onChange={() => setAutoScrollEnabled(prev => !prev)} />
+                    <input
+                        type="checkbox"
+                        checked={autoScrollEnabled}
+                        onChange={() => setAutoScrollEnabled(prev => !prev)}
+                    />
                     <span>Auto Scroll</span>
                 </label>
-                <input type="file" accept=".xlsx" onChange={handleFile} className="file-input" />
+                <input
+                    type="file"
+                    accept=".xlsx"
+                    onChange={handleFileChange}
+                    className="file-input"
+                />
                 {errors.length > 0 && (
                     <div className="error-list">
                         {errors.map((err, i) => (
@@ -182,9 +191,23 @@ function App() {
                         ))}
                     </div>
                 )}
+                {sheets.length > 0 && (
+                    <select onChange={e => setSelectedSheet(e.target.value)}>
+                        <option value="">Select sheet</option>
+                        {sheets.map(name => (
+                            <option key={name} value={name}>
+                                {name}
+                            </option>
+                        ))}
+                    </select>
+                )}
             </header>
             <StudioClock showSecondsHand={true} size={128} />
-            <Timeline events={events} onToggleComplete={toggleComplete} autoScrollEnabled={autoScrollEnabled} />
+            <Timeline
+                events={events}
+                onToggleComplete={toggleComplete}
+                autoScrollEnabled={autoScrollEnabled}
+            />
         </div>
     );
 }
