@@ -1,0 +1,38 @@
+.timeline {
+  display: flex;
+  flex-direction: column;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.timeline-header, .hour-header, .timeline-item {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 3fr 1fr;
+  align-items: center;
+  padding: 0.5rem;
+}
+
+.timeline-header {
+  position: sticky;
+  top: 0;
+  background: var(--header-bg, #f0f0f0);
+  font-weight: bold;
+  z-index: 1;
+}
+
+.hour-header {
+  background: var(--hour-bg, #e0e0e0);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.timeline-item {
+  border-bottom: 1px solid #ddd;
+  cursor: pointer;
+  transition: background 0.2s;
+  &:hover { background: var(--hover-bg, #f9f9f9); }
+}
+
+.timeline-item.past { opacity: 0.6; }
+.timeline-item.current { background: var(--current-bg, #fffae6); }
+.timeline-item.completed { text-decoration: line-through; opacity: 0.5; }
