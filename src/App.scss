@@ -42,8 +42,8 @@ $dark-success-border: rgba(16, 185, 129, 0.4);
 $dark-current-bg: rgba(37, 99, 235, 0.15);
 
 // Timeline grid proportions
-$timeline-grid-columns: 160px 120px 130px 2.5fr 0.8fr;
-$timeline-grid-gap: 1.25rem; // New variable for consistent column gap
+$timeline-grid-columns: 160px 120px 130px 2.5fr 0.8fr 100px;
+$timeline-grid-gap: 1rem; // New variable for consistent column gap
 $timeline-border-width: 1px;
 $timeline-item-focus-outline: 2px;
 
@@ -228,6 +228,17 @@ $timeline-item-focus-outline: 2px;
   .location { color: $light-text-secondary; }
   .description { color: $light-text-tertiary; font-size: 0.9rem; }
   .special { color: $error-color; font-weight: 500; letter-spacing: 0.02em; }
+  .category {
+    .category-pill {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border: 1px solid;       // color from inline style
+      border-radius: 9999px;    // full pill
+      font-size: 0.75rem;
+      font-weight: 500;
+      line-height: 1;
+    }
+  }
 }
 
 .dark .timeline-item {

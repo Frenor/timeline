@@ -1,13 +1,14 @@
-import React, { useEffect, useRef, useState } from 'react';
-import dayjs, { Dayjs } from 'dayjs';
+import React, {useEffect, useRef, useState} from 'react';
+import dayjs, {Dayjs} from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
 import CustomParseFormat from 'dayjs/plugin/customParseFormat'
-import { useInterval } from 'react-use';
-import { useXlsx } from './hooks/useXlsx';
-import { TimelineEvent } from './hooks/useXlsx';
-import { useAutoScroll } from './utils/useAutoScroll';
+import {useInterval} from 'react-use';
+import {useXlsx} from './hooks/useXlsx';
+import {TimelineEvent} from './hooks/useXlsx';
+import {useAutoScroll} from './utils/useAutoScroll';
 import StudioClock from './components/StudioClock';
 import './App.scss';
+import {stringToColor} from "./utils/color";
 
 dayjs.extend(isBetween);
 dayjs.extend(CustomParseFormat);
@@ -22,7 +23,7 @@ interface TimelineItemProps {
 }
 
 const TimelineItem = React.forwardRef<TimelineItemRef, TimelineItemProps>(
-    ({ event, isNow, isPast, onClick }, ref) => {
+    ({event, isNow, isPast, onClick}, ref) => {
         const classes = ['timeline-item'];
         if (event.completed) classes.push('completed');
         else if (isNow) classes.push('current');
@@ -36,11 +37,22 @@ const TimelineItem = React.forwardRef<TimelineItemRef, TimelineItemProps>(
             >
                 <div className="col title">{event.title}</div>
                 <div className="col time">
-                    {event.from.format('HH:mm')} - {event.to.format('HH:mm')}
+                    {event.from.format('HH:mm')}{!event.showTo && ` - ${event.to.format('HH:mm')}`}
                 </div>
                 <div className="col location">{event.location}</div>
                 <div className="col description">{event.description}</div>
                 <div className="col special">{event.special}</div>
+                {event.category &&
+                    <div className="col category">
+                    <span className="category-pill" style={{
+                        backgroundColor: stringToColor(event.category).bg,
+                        borderColor: stringToColor(event.category).border,
+                        color: stringToColor(event.category).text
+                    }}>
+                        {event.category}
+                    </span>
+                    </div>
+                }
             </div>
         );
     }
@@ -52,7 +64,7 @@ interface TimelineProps {
     autoScrollEnabled: boolean;
 }
 
-function Timeline({ events, onToggleComplete, autoScrollEnabled }: TimelineProps) {
+function Timeline({events, onToggleComplete, autoScrollEnabled}: TimelineProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const [now, setNow] = useState<Dayjs>(dayjs());
     const [internalAutoScroll, setInternalAutoScroll] = useState(true);
@@ -92,6 +104,7 @@ function Timeline({ events, onToggleComplete, autoScrollEnabled }: TimelineProps
                 <div className="col location">Location</div>
                 <div className="col description">Description</div>
                 <div className="col special">Special</div>
+                <div className="col category">Category</div>
             </div>
             {Object.entries(buckets).map(([hour, bucket]) => (
                 <div key={hour}>
@@ -119,7 +132,7 @@ function Timeline({ events, onToggleComplete, autoScrollEnabled }: TimelineProps
 
 function App() {
     const [file, setFile] = useState<File | null>(null);
-    const { sheets, items: parsedEvents, errors, setSelectedSheet } = useXlsx(file, true);
+    const {sheets, items: parsedEvents, errors, setSelectedSheet} = useXlsx(file, true);
 
     const [events, setEvents] = useState<TimelineEvent[]>([]);
     const [darkMode, setDarkMode] = useState(() => localStorage.getItem('theme') === 'dark');
@@ -136,7 +149,7 @@ function App() {
         localStorage.setItem(
             'timelineEvents',
             JSON.stringify(
-                events.map(e => ({ ...e, from: e.from.toISOString(), to: e.to.toISOString() }))
+                events.map(e => ({...e, from: e.from.toISOString(), to: e.to.toISOString()}))
             )
         );
     }, [events]);
@@ -153,7 +166,7 @@ function App() {
 
     const toggleComplete = (idx: number) => {
         setEvents(prev =>
-            prev.map((e, i) => (i === idx ? { ...e, completed: !e.completed } : e))
+            prev.map((e, i) => (i === idx ? {...e, completed: !e.completed} : e))
         );
     };
 
@@ -202,7 +215,7 @@ function App() {
                     </select>
                 )}
             </header>
-            <StudioClock showSecondsHand={true} size={128} />
+            <StudioClock showSecondsHand={true} size={128}/>
             <Timeline
                 events={events}
                 onToggleComplete={toggleComplete}

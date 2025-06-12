@@ -6,8 +6,10 @@ export interface TimelineEvent {
     title: string;
     from: dayjs.Dayjs;
     to: dayjs.Dayjs;
+    showTo: boolean;
     location: string;
     description: string;
+    category?: string;
     special?: string;
     completed: boolean;
 }
@@ -17,6 +19,7 @@ interface XlsxRow {
     from?: string;
     to?: string;
     location?: string;
+    category?: string;
     description?: string;
     special?: string;
 }
@@ -24,7 +27,6 @@ interface XlsxRow {
 function isValidRow(row: XlsxRow): row is Required<XlsxRow> {
     return (
         row.from?.trim() !== '' &&
-        row.to?.trim() !== '' &&
         row.location?.trim() !== '' &&
         row.description?.trim() !== ''
     );
@@ -100,10 +102,15 @@ export function useXlsx(file: File | null, withErrors: boolean = false): UseXlsx
                 return;
             }
 
-            let to = dayjs(row.to, 'HH:mm:ss', true);
-            if (!to.isValid()) {
-                if (withErrors) parseErrors.push(`Row ${rowNumber}: Invalid 'to' time – "${row.to}".`);
-                return;
+            let to;
+            if (!row.to) {
+                to = from.add(10, "minute")
+            } else {
+                to = dayjs(row.to, 'HH:mm:ss', true);
+               if (!to.isValid()) {
+                    if (withErrors) parseErrors.push(`Row ${rowNumber}: Invalid 'to' time – "${row.to}".`);
+                    return;
+                }
             }
 
             if (from.isAfter(to, 'minute')) {
@@ -114,8 +121,10 @@ export function useXlsx(file: File | null, withErrors: boolean = false): UseXlsx
                 title: row.title?.trim() || 'Untitled',
                 from,
                 to,
-                location: row.location!.trim(),
-                description: row.description!.trim(),
+                showTo: !row.to,
+                location: row.location?.trim(),
+                description: row.description?.trim(),
+                category: row.category?.trim().toLowerCase(),
                 special: row.special?.trim(),
                 completed: false,
             });
