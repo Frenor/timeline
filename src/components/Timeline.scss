@@ -12,6 +12,14 @@
   padding: 0.5rem;
 }
 
+.timeline-item.title-only {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 0fr 0fr; // Hide unused columns
+  .description, .special {
+    display: none;
+  }
+}
+
 .timeline-header {
   position: sticky;
   top: 0;

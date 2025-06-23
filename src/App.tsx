@@ -24,10 +24,12 @@ interface TimelineItemProps {
 
 const TimelineItem = React.forwardRef<TimelineItemRef, TimelineItemProps>(
     ({event, isNow, isPast, onClick}, ref) => {
+        const isOnlyTitle = event.title?.trim() && !event.description?.trim();
         const classes = ['timeline-item'];
         if (event.completed) classes.push('completed');
         else if (isNow) classes.push('current');
         else if (isPast) classes.push('past');
+        if (isOnlyTitle) classes.push('title-only');
 
         return (
             <div
